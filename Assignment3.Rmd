@@ -1,0 +1,48 @@
+---
+title: "Assignment 3"
+author: "Raju Adhikari and Mario Alonso Rodriguez"
+date: "November 11, 2016"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Merging databases
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+install.packages('WHO')
+install.packages('countrycode')
+library(WHO)
+library(countrycode)
+library(plyr)
+GINI <- WDI(country = 'all', start = '2011', end = '2011', indicator = 'SI.POV.GINI', extra = TRUE)
+DEATHS <- read.csv('http://apps.who.int/gho/athena/data/xmart.csv?target=GHO/TOTENV_1,TOTENV_2,TOTENV_5&profile=crosstable&filter=COUNTRY:*;REGION:*;ENVCAUSE:ENVCAUSE000;ENVCAUSE:ENVCAUSE001;ENVCAUSE:ENVCAUSE060;ENVCAUSE:ENVCAUSE151&x-sideaxis=COUNTRY;YEAR&x-topaxis=GHO;ENVCAUSE')
+DEATHS <- DEATHS[-c(1), ]
+print(class(DEATHS$X))
+DEATHS$X <- as.character(DEATHS$X)
+names(DEATHS)[names(DEATHS)=="X"] <- "country"
+names(DEATHS)[names(DEATHS)=="X.1"] <- "year"
+names(DEATHS)[names(DEATHS)=="Deaths.attributable.to.the.environment...."] <- "Percentageofdeaths"
+DEATHS$iso3c <- countrycode(DEATHS$country, origin = 'country.name', destination = 'iso3c', warn = TRUE)
+names(DEATHS)
+DEATHS <- DEATHS[, c('iso3c', 'year', 'Percentageofdeaths')]
+GINI <- GINI[, c(')]
+
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
