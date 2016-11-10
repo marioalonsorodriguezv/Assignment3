@@ -11,17 +11,16 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Merging databases
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+This is the third pair assignment of Introduction to Collaborative Social Science Data Analysis. Here, we 
+gathered web based data from the World Bank API, as well as from the World Health Organization website. We merged the data sets, and conducted basic descriptive and inferential statistics to address the effect of inequality on environment.
 
 ```{r cars}
-install.packages('WHO')
+install.packages('WDI')
 install.packages('countrycode')
-library(WHO)
+library(WDI)
 library(countrycode)
 library(plyr)
-GINI <- WDI(country = 'all', start = '2011', end = '2011', indicator = 'SI.POV.GINI', extra = TRUE)
+GINI <- WDI(country = 'all', start = '2012', end = '2012', indicator = 'SI.POV.GINI', extra = TRUE)
 DEATHS <- read.csv('http://apps.who.int/gho/athena/data/xmart.csv?target=GHO/TOTENV_1,TOTENV_2,TOTENV_5&profile=crosstable&filter=COUNTRY:*;REGION:*;ENVCAUSE:ENVCAUSE000;ENVCAUSE:ENVCAUSE001;ENVCAUSE:ENVCAUSE060;ENVCAUSE:ENVCAUSE151&x-sideaxis=COUNTRY;YEAR&x-topaxis=GHO;ENVCAUSE')
 DEATHS <- DEATHS[-c(1), ]
 print(class(DEATHS$X))
@@ -30,9 +29,12 @@ names(DEATHS)[names(DEATHS)=="X"] <- "country"
 names(DEATHS)[names(DEATHS)=="X.1"] <- "year"
 names(DEATHS)[names(DEATHS)=="Deaths.attributable.to.the.environment...."] <- "Percentageofdeaths"
 DEATHS$iso3c <- countrycode(DEATHS$country, origin = 'country.name', destination = 'iso3c', warn = TRUE)
-names(DEATHS)
 DEATHS <- DEATHS[, c('iso3c', 'year', 'Percentageofdeaths')]
-GINI <- GINI[, c(')]
+names(GINI)
+
+GINI <- GINI[, c('iso3c', 'country', 'SI.POV.GINI')]
+
+Combined <- merge(GINI, DEATHS, by = c('iso3c'))
 
 
 ```
