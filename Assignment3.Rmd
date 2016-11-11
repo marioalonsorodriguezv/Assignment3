@@ -12,9 +12,9 @@ knitr::opts_chunk$set(echo = TRUE, eval = TRUE, message=FALSE)
 ## Merging databases
 
 This is the third pair assignment of Introduction to Collaborative Social Science Data Analysis. Here, we 
-gathered web based data from the World Bank API, as well as from the Emissions Database for Global Atmospheric Research (EDGAR) from the European Comission website. We merged the data sets, and conducted basic descriptive and inferential statistics to address the effect of inequality on environment. With this we aim to 
+gathered web based data from the World Bank API, as well as from the Emissions Database for Global Atmospheric Research (EDGAR) from the European Comission website. With both datasets we aim to answer our research question: Does income inequality affect the environment negatively? To operationalize this, we will use CO2 emissions per capita to measure effects on the environment (dependent variable) and the GINI coefficient for inequality (independent variable). We merged the two data sets, and conducted basic descriptive and inferential statistics to address this question. 
 
-```{r databases, warning=FALSE, error=FALSE, message=FALSE, echo=FALSE}
+```{r databases, warning=FALSE, error=FALSE, message=FALSE, echo=FALSE, results='hide'}
 
 ####First of all, we set the working directory.
 
@@ -27,15 +27,15 @@ library(rio)
 library(stargazer)
 library(ggplot2)
 
-##### We access the World Development Indicators from the World Bank API direcly from R and we download the GINI coefficient indicator and also GDP per capita in case we need it as a control variable. We use the data from 2010 since it is the last one with the GINI information for the highest CO2 emitter in the world, the United States.
+##### We access the World Development Indicators from the World Bank API direcly from R and download the GINI coefficient indicator, also GDP per capita in case we need it as a control variable. We use the data from 2010 since it is the last one with the GINI coefficient for the United States.
 
 GINI <- WDI(country = 'all', start = '2010', end = '2010', indicator = c('SI.POV.GINI', 'NY.GDP.PCAP.CD'), extra = TRUE)
 
-##### We download the dataset of CO2 emissions per capita from the EDGAR database, unfortunately it is an xls file, so we need to use the rio package.
+##### We download the dataset of CO2 emissions per capita from the EDGAR database, unfortunately it is an xls file so we need to use the rio package.
 
 CO2 <- import('http://edgar.jrc.ec.europa.eu/news_docs/CO2_per_capita_1970-2014_dataset_of_CO2_report_2015.xls')
 
-##### We check the CO2 dataframe that we just downloaded and see that we don't need the first 13 rows so we subset them. Also, we only need the last column with the info of the CO2 emissions of 2013. We label that column since it does not have a name from the import process.
+##### We check the CO2 dataframe that we just downloaded and see that we don't need the first 13 rows so we take them out. Also, we only need the last column with the information of the CO2 emissions of 2013. We label that column since it does not have a name from the import process.
 
 CO2 <- CO2[-c(1:13), ]
 names(CO2)[42] <- "CO2010"
@@ -48,8 +48,9 @@ CO2$iso2c <- countrycode(CO2$country, 'country.name', 'iso2c', warn = TRUE)
 
 CO2 <- CO2[, c('iso2c', 'CO2010')]
 
-##### We take a look at the data that we downloaded from the World Bank and we change the name of the variables that we are going to use.
+##### We take a look at the data that we downloaded from the World Bank and change the name of the variables that we are going to use.
 
+View(GINI)
 names(GINI)[names(GINI)=="SI.POV.GINI"] <- "GiniCoeff"
 names(GINI)[names(GINI)=="NY.GDP.PCAP.CD"] <- "GDPperCapita"
 
@@ -84,7 +85,9 @@ stargazer(Combined, type = 'text')
 
 ```
 
-## Inferential stats
+## Inferential statistics
+
+A plot shows that there might not be a linear relationship between inequality and CO2 emissions. We run a first regression model with only one explanatory variable and see that it is statistically significant and that actually, more equal countries (with lower GINI coefficients) are the ones that emit more CO2. A one unit increase in the Gini coefficients means a decrease in the emission of about 0.3 metric tons of CO2 anually. This could be to the fact that countries with less inequality are more developed. On the second model, we include a control variable of GDP per Capita to see if the relationship between our independent and dependent variable is not caused by this third variable. The second model shows that GDP per capita and the Gini coeficcient are statistically significant. Nonetheless, our inequality variable is still negative, which means that countries with higher inequality actually have less CO2 emissions, even when controling for income. 
 
 ```{r inferential, echo=FALSE, warning=FALSE, error=FALSE, message=FALSE}
 
