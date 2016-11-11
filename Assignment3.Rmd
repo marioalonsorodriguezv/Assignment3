@@ -12,39 +12,85 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Merging databases
 
 This is the third pair assignment of Introduction to Collaborative Social Science Data Analysis. Here, we 
-gathered web based data from the World Bank API, as well as from the World Health Organization website. We merged the data sets, and conducted basic descriptive and inferential statistics to address the effect of inequality on environment.
+gathered web based data from the World Bank API, as well as from the Emissions Database for Global Atmospheric Research (EDGAR) from the European Comission website. We merged the data sets, and conducted basic descriptive and inferential statistics to address the effect of inequality on environment.
 
-```{r cars}
+```{r databases}
+####First of all, we set the working directory
+
+setwd('/Users/mariorodriguez/Desktop/Assignment3')
+
 install.packages('WDI')
 install.packages('countrycode')
+install.packages('rio')
+
+#### We load the packages we need for the handling of the data
 library(WDI)
 library(countrycode)
-library(plyr)
-GINI <- WDI(country = 'all', start = '2012', end = '2012', indicator = 'SI.POV.GINI', extra = TRUE)
-DEATHS <- read.csv('http://apps.who.int/gho/athena/data/xmart.csv?target=GHO/TOTENV_1,TOTENV_2,TOTENV_5&profile=crosstable&filter=COUNTRY:*;REGION:*;ENVCAUSE:ENVCAUSE000;ENVCAUSE:ENVCAUSE001;ENVCAUSE:ENVCAUSE060;ENVCAUSE:ENVCAUSE151&x-sideaxis=COUNTRY;YEAR&x-topaxis=GHO;ENVCAUSE')
-DEATHS <- DEATHS[-c(1), ]
-print(class(DEATHS$X))
-DEATHS$X <- as.character(DEATHS$X)
-names(DEATHS)[names(DEATHS)=="X"] <- "country"
-names(DEATHS)[names(DEATHS)=="X.1"] <- "year"
-names(DEATHS)[names(DEATHS)=="Deaths.attributable.to.the.environment...."] <- "Percentageofdeaths"
-DEATHS$iso3c <- countrycode(DEATHS$country, origin = 'country.name', destination = 'iso3c', warn = TRUE)
-DEATHS <- DEATHS[, c('iso3c', 'year', 'Percentageofdeaths')]
+library(rio)
+
+##### We access the World Development Indicators from the World Bank API direcly from R and we download the GINI coefficient indicator and also GDP per capita in case we need it as a control variable
+
+GINI <- WDI(country = 'all', start = '2014', end = '2014', indicator = c('SI.POV.GINI', 'NY.GDP.PCAP.CD'), extra = TRUE)
+
+##### We download the dataset of CO2 emissions per capita from the EDGAR database, unfortunately it is an xls file, so we need to use the rio package
+
+CO2 <- import('http://edgar.jrc.ec.europa.eu/news_docs/CO2_per_capita_1970-2014_dataset_of_CO2_report_2015.xls')
+
+##### We check the CO2 dataframe that we just downloaded and see that we don't need the first 13 rows so we subset them. Also, we only need the last column with the info of the CO2 emissions of 2014. We label that column since it does not have a name from the import process.
+
+View(CO2)
+names(CO2)
+CO2 <- CO2[-c(1:13), ]
+names(CO2)[46] <- "CO2014"
+
+###### We also rename the first column with the countries and create a new variable with the iso2c codes of the countries so it's easier to merge the data. Also we get rid from all the columns with information of the previous years. Also, we verify that the variables have the right class for analysis. 
+
+names(CO2)[names(CO2)=="Global per capita CO2 emissions from fossil fuel use and cement production 1970-2014"] <- "country"
+
+CO2$iso2c <- countrycode(CO2$country, 'country.name', 'iso2c', warn = TRUE)
+
+CO2 <- CO2[, c('iso2c', 'CO2014')]
+
+sapply(CO2, class)
+
+##### We take a look at the data that we downloaded from the World Bank and we change the name of the variables that we are going to use
+
+View(GINI)
 names(GINI)
+names(GINI)[names(GINI)=="SI.POV.GINI"] <- "GiniCoeff"
+names(GINI)[names(GINI)=="NY.GDP.PCAP.CD"] <- "GDPperCapita"
 
-GINI <- GINI[, c('iso3c', 'country', 'SI.POV.GINI')]
+##### We check the variable types and see that the iso2c is factor so we change it to character
 
-Combined <- merge(GINI, DEATHS, by = c('iso3c'))
+sapply(GINI, class)
 
+GINI$iso2c <- as.character(GINI$iso2c)
+
+GINI <- GINI[, c('iso2c', 'country', 'GiniCoeff', 'GDPperCapita')]
+
+#### Now we merge the datasets using iso2c as the base and check that the database has all the variables
+
+Combined <- merge(GINI, CO2, by = c('iso2c'))
+
+View(Combined)
 
 ```
 
-## Including Plots
-
-You can also embed plots, for example:
+## Descriptive stats
 
 ```{r pressure, echo=FALSE}
 plot(pressure)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+## Inferential stats
+
+```{r pressure, echo=FALSE}
+
+m1 <- lm(CO2014 ~ GiniCoeff, Combined)
+
+summary(m1)
+
+m2 <- lm(CO2014 ~ GiniCoeff + GDPperCapita, Combined)
+
+summary(m2)
+```
