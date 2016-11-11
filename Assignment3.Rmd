@@ -1,96 +1,100 @@
 ---
 title: "Assignment 3"
 author: "Raju Adhikari and Mario Alonso Rodriguez"
-date: "November 11, 2016"
-output: pdf_document
+date: "11/11/2016"
+output: 'pdf_document'
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r options, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE, message=FALSE)
 ```
 
 ## Merging databases
 
 This is the third pair assignment of Introduction to Collaborative Social Science Data Analysis. Here, we 
-gathered web based data from the World Bank API, as well as from the Emissions Database for Global Atmospheric Research (EDGAR) from the European Comission website. We merged the data sets, and conducted basic descriptive and inferential statistics to address the effect of inequality on environment.
+gathered web based data from the World Bank API, as well as from the Emissions Database for Global Atmospheric Research (EDGAR) from the European Comission website. We merged the data sets, and conducted basic descriptive and inferential statistics to address the effect of inequality on environment. With this we aim to 
 
-```{r databases}
-####First of all, we set the working directory
+```{r databases, warning=FALSE, error=FALSE, message=FALSE, echo=FALSE}
+
+####First of all, we set the working directory.
 
 setwd('/Users/mariorodriguez/Desktop/Assignment3')
 
-install.packages('WDI')
-install.packages('countrycode')
-install.packages('rio')
-
-#### We load the packages we need for the handling of the data
+#### We load the packages we need for the handling of the data.
 library(WDI)
 library(countrycode)
 library(rio)
+library(stargazer)
+library(ggplot2)
 
-##### We access the World Development Indicators from the World Bank API direcly from R and we download the GINI coefficient indicator and also GDP per capita in case we need it as a control variable
+##### We access the World Development Indicators from the World Bank API direcly from R and we download the GINI coefficient indicator and also GDP per capita in case we need it as a control variable. We use the data from 2010 since it is the last one with the GINI information for the highest CO2 emitter in the world, the United States.
 
-GINI <- WDI(country = 'all', start = '2014', end = '2014', indicator = c('SI.POV.GINI', 'NY.GDP.PCAP.CD'), extra = TRUE)
+GINI <- WDI(country = 'all', start = '2010', end = '2010', indicator = c('SI.POV.GINI', 'NY.GDP.PCAP.CD'), extra = TRUE)
 
-##### We download the dataset of CO2 emissions per capita from the EDGAR database, unfortunately it is an xls file, so we need to use the rio package
+##### We download the dataset of CO2 emissions per capita from the EDGAR database, unfortunately it is an xls file, so we need to use the rio package.
 
 CO2 <- import('http://edgar.jrc.ec.europa.eu/news_docs/CO2_per_capita_1970-2014_dataset_of_CO2_report_2015.xls')
 
-##### We check the CO2 dataframe that we just downloaded and see that we don't need the first 13 rows so we subset them. Also, we only need the last column with the info of the CO2 emissions of 2014. We label that column since it does not have a name from the import process.
+##### We check the CO2 dataframe that we just downloaded and see that we don't need the first 13 rows so we subset them. Also, we only need the last column with the info of the CO2 emissions of 2013. We label that column since it does not have a name from the import process.
 
-View(CO2)
-names(CO2)
 CO2 <- CO2[-c(1:13), ]
-names(CO2)[46] <- "CO2014"
+names(CO2)[42] <- "CO2010"
 
-###### We also rename the first column with the countries and create a new variable with the iso2c codes of the countries so it's easier to merge the data. Also we get rid from all the columns with information of the previous years. Also, we verify that the variables have the right class for analysis. 
+###### We also rename the first column with the countries and create a new variable with the iso2c codes of the countries so it's easier to merge the data. Also we get rid from all the columns with information of the previous years. 
 
 names(CO2)[names(CO2)=="Global per capita CO2 emissions from fossil fuel use and cement production 1970-2014"] <- "country"
 
 CO2$iso2c <- countrycode(CO2$country, 'country.name', 'iso2c', warn = TRUE)
 
-CO2 <- CO2[, c('iso2c', 'CO2014')]
+CO2 <- CO2[, c('iso2c', 'CO2010')]
 
-sapply(CO2, class)
+##### We take a look at the data that we downloaded from the World Bank and we change the name of the variables that we are going to use.
 
-##### We take a look at the data that we downloaded from the World Bank and we change the name of the variables that we are going to use
-
-View(GINI)
-names(GINI)
 names(GINI)[names(GINI)=="SI.POV.GINI"] <- "GiniCoeff"
 names(GINI)[names(GINI)=="NY.GDP.PCAP.CD"] <- "GDPperCapita"
 
-##### We check the variable types and see that the iso2c is factor so we change it to character
-
-sapply(GINI, class)
+##### We check the variable types and see that the iso2c is factor so we change it to character.
 
 GINI$iso2c <- as.character(GINI$iso2c)
 
-GINI <- GINI[, c('iso2c', 'country', 'GiniCoeff', 'GDPperCapita')]
+GINI <- GINI[, c('iso2c', 'country', 'GiniCoeff', 'GDPperCapita', 'income')]
 
-#### Now we merge the datasets using iso2c as the base and check that the database has all the variables
+#### We merge the datasets using iso2c as the base and check that the database has all the variables.
 
 Combined <- merge(GINI, CO2, by = c('iso2c'))
 
 View(Combined)
 
+
+#### We remove the rows with NAs given that they will not be used on our inferential analysis and are left with 70 observations.
+
+Combined <- Combined[complete.cases(Combined),]
+
 ```
 
-## Descriptive stats
+## Descriptive statistics
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+A series of basic statistics show that the mean Gini is 36.81. The minimum value is 24.82 for the Ukraine, which means that it was the less unequal country in terms of income in 2010. The highest inequality was in Zambia with 55.62. The mean value of GDP per capita of our set of countries in 2012 was 19,222.2 USD dollars. The lowest value for this variable is 341.9 of Ethiopia and the highest is 103267.3 of Luxembourg. Finally, the CO2 emissions per capita have a mean of 4.873 metric tons in 2012. The lowest value in 2010 was 0.056 of Tuvalu, and the highest is 21.941 from Luxembourg.
+
+```{r descriptive, echo=FALSE, warning=FALSE, error=FALSE, message=FALSE}
+#### We create a table to get all the descriptive statistics of the newly created dataset.
+
+stargazer(Combined, type = 'text')
+
+
 ```
 
 ## Inferential stats
 
-```{r pressure, echo=FALSE}
+```{r inferential, echo=FALSE, warning=FALSE, error=FALSE, message=FALSE}
 
-m1 <- lm(CO2014 ~ GiniCoeff, Combined)
+ggplot(data = Combined, aes(x = CO2010,
+        y = GiniCoeff)) + geom_point(aes(colour = income)) + theme_bw()
 
-summary(m1)
+m1 <- lm(CO2010 ~ GiniCoeff, Combined)
 
-m2 <- lm(CO2014 ~ GiniCoeff + GDPperCapita, Combined)
+m2 <- lm(CO2010 ~ GiniCoeff + GDPperCapita, Combined)
 
-summary(m2)
+stargazer(m1, m2, type = 'text')
 ```
+
