@@ -7,8 +7,8 @@ Authors: Mario Alonso Rodriguez and Raju Adhikari
 Repository on Github: Assignment3 
 
 Datasets used in the Repository:
-1.  
-2. 
+1. World Bank Data on Gini Index and GDP per capita
+2. EDGAR (EU Commission) on CO2 time series 1990-2014 per capita for world countries
 
 Research Topic: Effects of income inequality on the environment.
 
